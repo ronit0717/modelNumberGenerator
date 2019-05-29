@@ -1,0 +1,244 @@
+<html>
+<head>
+	<title>Tradub Product Variant Panel</title>
+	
+	<style>
+		.input-container {
+			padding: 15px;
+		}
+		
+		.model-num-index{
+			padding: 10px;
+			border: 1px solid #777777;
+			margin-bottom: 5px;
+			box-shadow: 2px 2px 5px #aaaaaa;
+			border-radius: 5px;
+		}
+		
+		table, th, td {
+			border: 1px solid black;
+		}
+	</style>
+</head>
+<body>
+	<div id="instructions">
+		
+	</div>
+	
+	<div id="model-num-len-cap" style="margin-bottom:25px;">
+		Enter Length of Model Number Variables: <input type="text" id="model-num-len"/><button onclick="fnOpenVariantCapture();" id="model-num-len-sub">Submit</button>
+	</div>
+	
+	<div id="wg-variant-cap" style="display:none;"></div>
+	
+	<button id="gen-btn" onClick="fnGenerate();" style="display:none;">Generate</button>
+	
+	<div id="results" style="display:none;"></div>
+	
+	<div id="errors" style="display:none"></div>
+</body>
+
+<script>
+	var displayGenerate = false;
+	
+	function fnOpenVariantCapture(){
+	
+		if(!displayGenerate){
+			document.getElementById("gen-btn").style.display = "block";
+			displayGenerate = true;
+		}
+		
+		var modelNumLength = document.getElementById('model-num-len').value;
+		var innerHtmlContent = "";
+		for(var i=0; i<modelNumLength; i++){
+			innerHtmlContent += "<div id='wg-mod-ind-"+(i+1)+"' class='model-num-index'>";
+			
+			innerHtmlContent += "<div id='wg-mod-ind-typ-"+(i+1)+"' class='model-num-index-typ'>";
+			
+			innerHtmlContent += "<h5>Variable "+(i+1)+"</h5>"
+			innerHtmlContent += "<form>Select type:";
+			innerHtmlContent += "<input type='radio' value='fixed' name='modelNumIndexType' onClick=\"fnDisplayType('fixed','"+(i+1)+"')\" >Fixed";
+			innerHtmlContent += "<input type='radio' value='variant' name='modelNumIndexType' onClick=\"fnDisplayType('variant','"+(i+1)+"')\" >Variant <br>";
+			innerHtmlContent += "</form>";
+			
+			innerHtmlContent += "<input id='mod-ind-typ-value-"+(i+1)+"' style='display:none;'>";
+			
+			innerHtmlContent += "<div id=\"mod-inp-fixed-"+(i+1)+"\" class=\"input-container\" style=\"display:none;\">";
+			innerHtmlContent += "Enter model number variable: <input id='mod-inp-fixed-value-"+(i+1)+"'>";
+			innerHtmlContent += "</div>";
+			
+			innerHtmlContent += "<div id=\"mod-inp-variant-"+(i+1)+"\" class=\"input-container\" style=\"display:none;\">";
+			innerHtmlContent += "Enter tilde(~) separated model number variables without any spaces: <br><textarea id='mod-inp-variant-variables-"+(i+1)+"' rows='2' cols='100'></textarea>";
+			innerHtmlContent += "<br><br>Enter tilde(~) separated corresponding values: <br><textarea id='mod-inp-variant-values-"+(i+1)+"' rows='5' cols='100'></textarea>";
+			innerHtmlContent += "<br><br>Enter Field Name: <input id='mod-inp-variant-field-name-"+(i+1)+"'>";
+			innerHtmlContent += "</div>";
+			
+			innerHtmlContent += "</div>"
+			
+			innerHtmlContent += "</div>"
+		}
+		document.getElementById("wg-variant-cap").innerHTML = innerHtmlContent;
+		document.getElementById("wg-variant-cap").style.display = "block";
+	}
+	
+	function fnDisplayType(typeParam, index){
+		document.getElementById("mod-ind-typ-value-"+index).value = typeParam;
+		
+		if(typeParam == "fixed"){
+			document.getElementById('mod-inp-fixed-'+index).style.display = "block";
+			document.getElementById('mod-inp-variant-'+index).style.display = "none";
+		}else if(typeParam == "variant"){
+			document.getElementById('mod-inp-fixed-'+index).style.display = "none";
+			document.getElementById('mod-inp-variant-'+index).style.display = "block";
+		}
+	}
+	
+	function fnGenerate(){
+		var tableHtml = "<h5>Generated Table:</h5><table>";
+		
+		//Code to get the column Names Starts
+		var columnNames = "Model Number";
+		var modelNumLength = document.getElementById('model-num-len').value;
+		
+		for(var i=0; i<modelNumLength; i++){
+			var type = document.getElementById('mod-ind-typ-value-'+(i+1)).value;
+			
+			if(type == "variant"){
+				columnNames += "~"+document.getElementById('mod-inp-variant-field-name-'+(i+1)).value;
+			}
+		}
+		
+		//alert("COLUMN NAMES->"+columnNames);
+		
+		var columnArray = columnNames.split('~');
+		tableHtml += "<tr>";
+		for(var i=0; i < columnArray.length; i++){
+			tableHtml += "<th>"+columnArray[i]+"</th>";
+		}
+		tableHtml += "</tr>";
+		//Code to get the column Names Ends
+		
+		
+		//Code to make the multidimensional array starts
+		var modelNumDyArray = [];
+		
+		
+		for(var i=0; i<modelNumLength; i++){
+			var variantElementArray = null;
+			
+			var type = document.getElementById('mod-ind-typ-value-'+(i+1)).value;
+			if(type == "variant"){
+				var variantElements = document.getElementById('mod-inp-variant-variables-'+(i+1)).value; //Tilde separated
+				variantElements = variantElements.trim();
+				if(variantElements.substring(variantElements.length, variantElements.length-1) == "~"){
+					variantElements = variantElements.substring(0, variantElements.length-1);
+				}
+  
+				if(variantElements.substring(0, 1) == "~"){
+					variantElements = variantElements.substring(1, variantElements.length);
+				}
+				
+				variantElementArray = variantElements.split('~');
+			}else{
+				var variantElements = document.getElementById('mod-inp-fixed-value-'+(i+1)).value;
+				variantElements = variantElements.trim();
+				
+				variantElementArray = variantElements.split('~');
+			}
+			modelNumDyArray.push(variantElementArray);
+		}
+		//Code to make the multidimensional array ends
+		
+		//Code to make the counter starts
+		var counterStr = "";
+		var counterLimitStr = "";
+		for(var i=0; i<modelNumLength; i++){
+			if(i != 0){
+				counterStr += "~";
+				counterLimitStr += "~";
+			}
+			
+			counterStr += "0";
+			counterLimitStr += (modelNumDyArray[i].length).toString();
+		}
+		
+		var counter = counterStr.split('~');
+		var counterLimit = counterLimitStr.split('~');
+		//Code to make the counter ends
+		
+		//Code to count max combinations starts
+		var maxCombination = 1;
+		for(var i=0; i<counterLimit.length; i++){
+			maxCombination *= counterLimit[i];
+		}
+		//Code to count max combinations ends
+		
+		//Code to generate table starts
+		for(var i=0; i<maxCombination; i++){
+		
+			if(i != 0){
+				counter = counterIncrement(counterLimit, counter);
+			}
+			var modelNum = "";
+			var x = null;
+			var y = null;
+			var fieldValue = "";
+			var finalFieldValue = "";
+
+			for(var j=0; j<modelNumLength; j++){
+				x = j;
+				y = parseInt(counter[j], 10);
+				
+				modelNum+= modelNumDyArray[x][y];
+				
+				var type = document.getElementById('mod-ind-typ-value-'+(j+1)).value;
+				if(type == "variant"){
+					var inpStr = document.getElementById('mod-inp-variant-values-'+(j+1)).value;
+					var inpArray = inpStr.split('~');
+					if(fieldValue != ""){
+						fieldValue += "~";
+					}
+					fieldValue += inpArray[y];
+				}
+			}
+			
+			finalFieldValue = modelNum + "~" + fieldValue;
+			var fieldValArray = finalFieldValue.split('~');
+			
+			tableHtml += "<tr>";
+				for(var k=0; k < fieldValArray.length; k++){
+					tableHtml += "<th>"+fieldValArray[k]+"</th>";
+				}
+			tableHtml += "</tr>";
+			
+		}
+		//Code to generate table ends
+		
+		tableHtml += "</table>";
+		
+		document.getElementById('results').innerHTML = tableHtml;
+		document.getElementById('results').style.display = "block";
+		
+	}
+	
+	function counterIncrement(counterLimit, currentStage){
+		var returnStage = currentStage;
+		for(var i= counterLimit.length - 1; i >= 0; i--){
+			var currentIndex = currentStage[i];
+			var limitIndex = counterLimit[i];
+			
+			if((parseInt(currentIndex, 10) + 1) == parseInt(limitIndex, 10)){
+				currentIndex = "0";
+				returnStage[i] = currentIndex;
+			}else{
+				currentIndex++;
+				returnStage[i] = currentIndex.toString();
+				break;
+			}
+		}
+		return returnStage;
+	}
+</script>
+</html>
+
+
